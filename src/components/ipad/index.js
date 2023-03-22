@@ -6,10 +6,20 @@ import style_ipad from '../button/style_ipad';
 // import jquery for API calls
 import $ from 'jquery';
 // import the Button component
-import Button from '../button';
+
+import NavButton from '../NavButton';
+import NavButtonStyle from '../NavButton/style';
+import ipadLandingPage from '../Pages/LandingPage/ipad.js';
+import ipadWeatherPage from '../Pages/WeatherPage/ipad.js';
+import ipadSearchPage from '../Pages/SearchPage/ipad.js';
+import ipadSchedulesPage from '../Pages/SchedulesPage/ipad.js';
+import ipadSchedulePage from '../Pages/SchedulePage/ipad.js';
+import ipadNewSchedulePage from '../Pages/NewSchedulePage/ipad.js';
+import ipadSettingsPage from '../Pages/SettingsPage/ipad.js';
+
+import preactLocalStorage from 'preact-localstorage';
 
 export default class Ipad extends Component {
-//var Ipad = React.createClass({
 
 	// a constructor with initial set states
 	constructor(props){
@@ -17,57 +27,64 @@ export default class Ipad extends Component {
 		// temperature state
 		this.state.temp = "";
 		// button display state
-		this.setState({ display: true });
-    }
-
-	// a call to fetch weather data via wunderground
-	fetchWeatherData = () => {
-		// API URL with a structure of : ttp://api.wunderground.com/api/key/feature/q/country-code/city.json
-		var url = "http://api.openweathermap.org/data/2.5/weather?q=London&units=metric&APPID=2cff907100ce4487904f8fa51d61e4c8";
-		$.ajax({
-			url: url,
-			dataType: "jsonp",
-			success : this.parseResponse,
-			error : function(req, err){ console.log('API call failed ' + err); }
-		})
-		// once the data grabbed, hide the button
-		this.setState({ display: false });
-	}
-
-	// the main render method for the iphone component
-	render() {
-		// check if temperature data is fetched, if so add the sign styling to the page
-		const tempStyles = this.state.temp ? `${style.temperature} ${style.filled}` : style.temperature;
-
-		// display all weather data
-		return (
-			<div class={ style.container }>
-				<div class={ style.header }>
-					<div class={ style.city }>{ this.state.currentCity }</div>
-					<div class={ style.country }>{ this.state.currentCountry }</div>
-					<div class={ style.conditions }>{ this.state.cond }</div>
-					<span class={ style.temperature }>{ this.state.temp }</span>
-				</div>
-				<div class={ style.details }></div>
-				<div class={ style_ipad.container }>
-					{ this.state.display ? <Button class={ style_ipad.button } clickFunction={ this.fetchWeatherData }/ > : null }
-				</div>
-			</div>
+		this.setState(
+			{
+				display: true,
+				pageContent: <ipadLandingPage onAdvance={this.goToLondonWeatherPage.bind(this)}/>
+			}
 		);
 	}
 
-	parseResponse = (parsed_json) => {
-		var city = parsed_json['name'];
-		var country = parsed_json['sys']['country'];
-		var temp_c = parsed_json['main']['temp'];
-		var conditions = parsed_json['weather']['0']['description'];
+	setPageContent(newContent){
+		this.setState({pageContent: newContent});
+	}
 
-		// set the states for fields so they could be rendered later on
-		this.setState({
-			currentCity: city,
-			currentCountry: country,
-			temp: temp_c,
-			cond : conditions
-		});      
+	goToHomePage(){
+		this.setPageContent(<ipadLandingPage onAdvance={this.goToLondonWeatherPage.bind(this)}/>);
+	}
+	goToLondonWeatherPage(){
+		this.setPageContent(<ipadWeatherPage LOCID="2643743"/>);
+	}
+	goToSearchPage(){
+		this.setPageContent(<ipadSearchPage locationCallback={this.locationCallback.bind(this)} nameCallback={this.nameCallback.bind(this)}/>);
+	}
+	locationCallback(location){
+		this.setPageContent(<ipadWeatherPage LOCID={location["id"]}/>);
+	}
+	nameCallback(name){
+		this.setPageContent(<ipadWeatherPage LOCNAME={name}/>);
+	}
+	goToSchedulesPage(){
+		this.setPageContent(<ipadSchedulesPage onNewSchedule={this.goToNewSchedulePage.bind(this)} onSelectSchedule={this.goToSchedulePage.bind(this)}/>);
+	}
+	goToNewSchedulePage(){
+		this.setPageContent(<ipadNewSchedulePage defaultTitle="New Schedule" onCancel={this.goToHomePage.bind(this)} onSave={this.goToHomePage.bind(this)}/>);
+	}
+	goToSchedulePage(schedule){
+		this.setPageContent(<ipadSchedulePage schedule={schedule}/>);
+	}
+	goToSettingsPage(){
+		this.setPageContent(<ipadSettingsPage/>);
+	}
+
+	// the main render method for the ipad component
+	render() {
+		// check if temperature data is fetched, if so add the sign styling to the page
+//		const tempStyles = this.state.temp ? `${style.temperature} ${style.filled}` : style.temperature;
+		
+		// display all weather data
+		return (
+			<div class={ style.container }>
+				<div>
+					{ this.state.pageContent }
+				</div>
+				<ol class={style.bottomNavbar}>
+					<li><Button class={style_ipad.button} Text="Home" clickFunction={this.goToHomePage.bind(this)}/></li>
+					<li><Button class={style_ipad.button} Text="Schedules" clickFunction={this.goToSchedulesPage.bind(this)}/></li>
+					<li><Button class={style_ipad.button} Text="Search" clickFunction={this.goToSearchPage.bind(this)}/></li>
+					<li><Button class={style_ipad.button} Text="Settings" clickFunction={this.goToSettingsPage.bind(this)}/></li>
+				</ol>
+			</div>
+		);
 	}
 }
